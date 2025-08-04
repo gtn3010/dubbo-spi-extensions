@@ -24,6 +24,8 @@ import org.apache.dubbo.registry.xds.util.PilotExchanger;
 import org.apache.dubbo.registry.xds.util.protocol.message.Endpoint;
 import org.apache.dubbo.registry.xds.util.protocol.message.EndpointResult;
 import org.apache.dubbo.rpc.model.FrameworkModel;
+import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
+import org.apache.dubbo.common.logger.LoggerFactory;
 
 import java.util.Collections;
 import java.util.Map;
@@ -33,6 +35,8 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class EdsEndpointManager {
+
+    private static final ErrorTypeAwareLogger logger = LoggerFactory.getErrorTypeAwareLogger(EdsEndpointManager.class);
 
     private static final ConcurrentHashMap<String, Set<EdsEndpointListener>> ENDPOINT_LISTENERS =
             new ConcurrentHashMap<>();
@@ -45,6 +49,8 @@ public class EdsEndpointManager {
     public EdsEndpointManager() {}
 
     public synchronized void subscribeEds(String cluster, EdsEndpointListener listener) {
+
+        logger.info("Subscribe EDS for cluster: {}", cluster);
 
         Set<EdsEndpointListener> listeners =
                 ConcurrentHashMapUtils.computeIfAbsent(ENDPOINT_LISTENERS, cluster, key -> new ConcurrentHashSet<>());
@@ -59,6 +65,7 @@ public class EdsEndpointManager {
     }
 
     private void doSubscribeEds(String cluster) {
+
         ConcurrentHashMapUtils.computeIfAbsent(EDS_LISTENERS, cluster, key -> endpoints -> {
             Set<Endpoint> result = endpoints.values().stream()
                     .map(EndpointResult::getEndpoints)
@@ -98,6 +105,8 @@ public class EdsEndpointManager {
     }
 
     public void notifyEndpointChange(String cluster, Set<Endpoint> endpoints) {
+        
+        logger.info("notifyEndpointChange for cluster: {}", cluster);
 
         ENDPOINT_DATA_CACHE.put(cluster, endpoints);
 

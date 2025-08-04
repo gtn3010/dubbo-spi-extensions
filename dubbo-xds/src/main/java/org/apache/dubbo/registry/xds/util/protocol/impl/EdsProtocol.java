@@ -75,8 +75,10 @@ public class EdsProtocol extends AbstractProtocol<EndpointResult, DeltaEndpoint>
     }
 
     private static Endpoint decodeLbEndpointToEndpoint(String clusterName, LbEndpoint lbEndpoint) {
+        logger.info("Cluster name EDS: {}", clusterName);
         Endpoint endpoint = new Endpoint();
         SocketAddress address = lbEndpoint.getEndpoint().getAddress().getSocketAddress();
+        logger.info("socket address of endpoint EDS: {}", address);
         endpoint.setAddress(address.getAddress());
         endpoint.setPortValue(address.getPortValue());
         boolean healthy = HealthStatus.HEALTHY.equals(lbEndpoint.getHealthStatus())

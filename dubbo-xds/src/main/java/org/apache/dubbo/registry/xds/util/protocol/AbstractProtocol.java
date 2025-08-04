@@ -109,6 +109,8 @@ public abstract class AbstractProtocol<T, S extends DeltaResource<T>> implements
     @Override
     public Map<String, T> getResource(Set<String> resourceNames) {
         resourceNames = resourceNames == null ? Collections.emptySet() : resourceNames;
+        
+        resourceNames.forEach(rn -> logger.info("List resource names to get with ADS: {}", rn));
 
         if (!resourceNames.isEmpty() && isCacheExistResource(resourceNames)) {
             return getResourceFromCache(resourceNames);

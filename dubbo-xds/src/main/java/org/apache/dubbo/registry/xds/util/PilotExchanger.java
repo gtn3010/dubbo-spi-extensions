@@ -30,6 +30,8 @@ import org.apache.dubbo.registry.xds.util.protocol.message.ListenerResult;
 import org.apache.dubbo.registry.xds.util.protocol.message.RouteResult;
 import org.apache.dubbo.rpc.cluster.router.xds.RdsVirtualHostListener;
 import org.apache.dubbo.rpc.model.ApplicationModel;
+import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
+import org.apache.dubbo.common.logger.LoggerFactory;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -67,6 +69,8 @@ public class PilotExchanger {
     private static PilotExchanger GLOBAL_PILOT_EXCHANGER = null;
 
     private final ApplicationModel applicationModel;
+
+    private static final ErrorTypeAwareLogger logger = LoggerFactory.getErrorTypeAwareLogger(PilotExchanger.class);
 
     protected PilotExchanger(URL url) {
         xdsChannel = new XdsChannel(url);
@@ -168,12 +172,15 @@ public class PilotExchanger {
     }
 
     public Set<Endpoint> getEndpoints(String domain) {
+        logger.info("Domain to get endpoints: {}", domain);
         Set<Endpoint> endpoints = new HashSet<>();
         for (Map.Entry<String, RouteResult> entry : routeResult.entrySet()) {
             Set<String> cluster = entry.getValue().searchDomain(domain);
+            cluster.forEach(cl -> logger.info("cluster info from routeResult: {}", cl));
             if (CollectionUtils.isNotEmpty(cluster)) {
                 Map<String, EndpointResult> endpointResultList = edsProtocol.getResource(cluster);
                 endpointResultList.forEach((k, v) -> endpoints.addAll(v.getEndpoints()));
+                endpointResultList.forEach((k, v) -> logger.info("EndpointResult is {}", v.toString()));
             } else {
                 return Collections.emptySet();
             }
@@ -197,10 +204,15 @@ public class PilotExchanger {
     }
 
     private void doObserveEndpoints(String domain) {
+        logger.info("doObserverEndpoints domain: {}", domain);
         for (Map.Entry<String, RouteResult> entry : routeResult.entrySet()) {
+            // if (domain.equals("product-catalog-service")) {
+            //     logger.info("RouteResult is {}", routeResult.toString());
+            // }
             Set<String> router = entry.getValue().searchDomain(domain);
             // if router is empty, do nothing
             // observation will be created when RDS updates
+            logger.info("List router for domain {}: {}", domain, router);
             if (CollectionUtils.isNotEmpty(router)) {
                 edsProtocol.observeResource(
                         router,
@@ -209,6 +221,7 @@ public class PilotExchanger {
                                     .map(EndpointResult::getEndpoints)
                                     .flatMap(Set::stream)
                                     .collect(Collectors.toSet());
+                            endpoints.forEach(e -> logger.info("endpoint of domain {} is {}", domain, e.toString()));
                             for (Consumer<Set<Endpoint>> consumer : domainObserveConsumer.get(domain)) {
                                 consumer.accept(endpoints);
                             }

@@ -37,6 +37,8 @@ import org.apache.dubbo.rpc.cluster.router.xds.rule.HttpRequestMatch;
 import org.apache.dubbo.rpc.cluster.router.xds.rule.PathMatcher;
 import org.apache.dubbo.rpc.cluster.router.xds.rule.XdsRouteRule;
 import org.apache.dubbo.rpc.support.RpcUtils;
+import org.apache.dubbo.common.logger.ErrorTypeAwareLogger;
+import org.apache.dubbo.common.logger.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -64,6 +66,8 @@ public class XdsRouter<T> extends AbstractStateRouter<T> implements XdsRouteRule
     private static final String BINARY_HEADER_SUFFIX = "-bin";
 
     private final boolean isEnable;
+    
+    private static final ErrorTypeAwareLogger logger = LoggerFactory.getErrorTypeAwareLogger(XdsRouter.class);
 
     public XdsRouter(URL url) {
         super(url);
@@ -128,12 +132,14 @@ public class XdsRouter<T> extends AbstractStateRouter<T> implements XdsRouteRule
         String matchCluster = null;
         Set<String> appNames = subscribeApplications;
         for (String subscribeApplication : appNames) {
+            logger.info("Application name: {}", subscribeApplication);
             List<XdsRouteRule> rules = xdsRouteRuleMap.get(subscribeApplication);
             if (CollectionUtils.isEmpty(rules)) {
                 continue;
             }
             for (XdsRouteRule rule : rules) {
                 String cluster = computeMatchCluster(invocation, rule);
+                logger.info("Compute match cluster: {}", cluster);
                 if (cluster != null) {
                     matchCluster = cluster;
                     break;
@@ -159,6 +165,7 @@ public class XdsRouter<T> extends AbstractStateRouter<T> implements XdsRouteRule
             return invokers;
         }
         DestinationSubset<T> destinationSubset = destinationSubsetMap.get(matchCluster);
+        logger.info("Destination subset map: {}", destinationSubset);
         // cluster no target provider
         if (destinationSubset == null) {
             if (needToPrintMessage) {
@@ -202,6 +209,7 @@ public class XdsRouter<T> extends AbstractStateRouter<T> implements XdsRouteRule
             }
         }
         HTTPRouteDestination route = rule.getRoute();
+        
         if (route.getCluster() != null) {
             return route.getCluster();
         }

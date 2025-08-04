@@ -163,6 +163,7 @@ public class RdsVirtualHostListener {
                 RouteAction.ClusterSpecifierCase clusterSpecifierCase = routeAction.getClusterSpecifierCase();
                 if (clusterSpecifierCase == RouteAction.ClusterSpecifierCase.CLUSTER) {
                     httpRouteDestination.setCluster(routeAction.getCluster());
+                    LOGGER.info("Cluster when parsing RDS virtualhost: {}", routeAction.getCluster());
                     return httpRouteDestination;
                 } else if (clusterSpecifierCase == RouteAction.ClusterSpecifierCase.WEIGHTED_CLUSTERS) {
                     List<ClusterWeight> clusterWeights = routeAction.getWeightedClusters().getClustersList().stream()
@@ -170,6 +171,7 @@ public class RdsVirtualHostListener {
                                     new ClusterWeight(c.getName(), c.getWeight().getValue()))
                             .sorted(Comparator.comparing(ClusterWeight::getWeight))
                             .collect(Collectors.toList());
+                    routeAction.getWeightedClusters().getClustersList().forEach(cl -> LOGGER.info("Cluster name with weight, name {} and weight {}", cl.getName(), cl.getWeight().getValue()));
                     httpRouteDestination.setWeightedClusters(clusterWeights);
                     return httpRouteDestination;
                 }
