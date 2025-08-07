@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -69,10 +70,20 @@ public class RdsProtocol extends AbstractProtocol<RouteResult, DeltaRoute> {
         Map<String, Set<String>> map = new HashMap<>();
         Map<String, VirtualHost> rdsVirtualhostMap = new ConcurrentHashMap<>();
         resource.getVirtualHostsList().forEach(virtualHost -> {
-            Set<String> cluster = virtualHost.getRoutesList().stream()
-                    .map(Route::getRoute)
-                    .map(RouteAction::getCluster)
-                    .collect(Collectors.toSet());
+            // Set<String> cluster = virtualHost.getRoutesList().stream()
+            //         .map(Route::getRoute)
+            //         .map(RouteAction::getCluster)
+            //         .collect(Collectors.toSet());
+            Set<String> cluster = new HashSet<>();
+            virtualHost.getRoutesList().stream().map(Route::getRoute).forEach(ra -> {
+                RouteAction.ClusterSpecifierCase clusterSpecifierCase = ra.getClusterSpecifierCase();
+                if (clusterSpecifierCase == RouteAction.ClusterSpecifierCase.CLUSTER) {
+                    cluster.add(ra.getCluster());
+                } else if (clusterSpecifierCase == RouteAction.ClusterSpecifierCase.WEIGHTED_CLUSTERS) {
+                    ra.getWeightedClusters().getClustersList().forEach(c -> cluster.add(c.getName()));
+                }
+            });
+            logger.info("Added cluster: {}", cluster);
             for (String domain : virtualHost.getDomainsList()) {
                 map.put(domain, cluster);
                 rdsVirtualhostMap.put(domain, virtualHost);
